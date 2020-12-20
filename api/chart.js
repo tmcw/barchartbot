@@ -1,4 +1,3 @@
-import { NowRequest, NowResponse } from "@vercel/node";
 import * as vega from "vega";
 import numeral from "numeral";
 
