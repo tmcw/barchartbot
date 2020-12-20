@@ -1,7 +1,12 @@
+import { registerFont } from "canvas";
 import * as vega from "vega";
 import numeral from "numeral";
 
-const images = {};
+import path from "path";
+
+registerFont(path.resolve("./public/Inter-Medium.ttf"), {
+  family: "Inter",
+});
 
 function spec(data) {
   return {
@@ -36,8 +41,18 @@ function spec(data) {
     ],
 
     axes: [
-      { orient: "bottom", scale: "xscale" },
-      { orient: "left", scale: "yscale" },
+      {
+        orient: "bottom",
+        scale: "xscale",
+        labelFont: "Inter",
+        labelFontSize: 14,
+      },
+      {
+        orient: "left",
+        scale: "yscale",
+        labelFont: "Inter",
+        labelFontSize: 14,
+      },
     ],
 
     marks: [
