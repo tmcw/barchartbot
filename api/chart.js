@@ -81,7 +81,7 @@ function parseTweet(txt) {
   return values;
 }
 
-module.exports = (req: NowRequest, res: NowResponse) => {
+module.exports = (req, res) => {
   const { tweet = "" } = req.query;
 
   const view = new vega.View(vega.parse(spec(parseTweet(tweet)), {}), {
