@@ -16,6 +16,10 @@ function spec(data) {
     height: 400,
     padding: 5,
 
+    config: {
+      background: "#ffffff",
+    },
+
     data: [
       {
         name: "table",
