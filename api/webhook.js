@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const request = require("request-promise");
 
 const TWITTER_API = "https://api.twitter.com/1.1";
-const TWITTER_USERNAME = "@gimmedadjoke";
+const TWITTER_USERNAME = "@barchartbot";
 const GITHUB_URL = "https://github.com/alexluong/gimmedadjoke";
 
 function createCrcResponseToken(crcToken) {
