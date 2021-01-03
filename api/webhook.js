@@ -65,6 +65,9 @@ function postHandler(req, res) {
         console.log(error.message);
         res.status(500).send();
       });
+  } else {
+    console.log("non-mention request");
+    res.status(404).send();
   }
 }
 
