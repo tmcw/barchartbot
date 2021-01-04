@@ -4,15 +4,23 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "@types/numeral": "^0.0.28",
+    "@types/request-promise": "^4.1.47",
+    "@types/tap": "^14.10.1",
     "@vercel/node": "^1.8.5",
     "canvas": "^2.6.1",
     "dotenv": "^8.2.0",
     "numeral": "^2.0.6",
     "request": "^2.88.2",
     "request-promise": "^4.2.6",
+    "url-regex": "^5.0.0",
     "vega": "^5.17.0"
   },
   "scripts": {
-    "vercel-build": "yum install libuuid-devel libmount-devel && cp /lib64/{libuuid,libmount,libblkid}.so.1 node_modules/canvas/build/Release/"
+    "vercel-build": "yum install libuuid-devel libmount-devel && cp /lib64/{libuuid,libmount,libblkid}.so.1 node_modules/canvas/build/Release/",
+    "test": "tap"
+  },
+  "devDependencies": {
+    "tap": "^14.11.0"
   }
 }

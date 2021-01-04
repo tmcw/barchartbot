@@ -1,20 +1,18 @@
-import { registerFont } from "canvas";
 import * as vega from "vega";
-import numeral from "numeral";
+import Path from "path";
+import { registerFont } from "canvas";
 
-import path from "path";
-
-registerFont(path.resolve("./public/Inter-Medium.ttf"), {
+registerFont(Path.resolve("./public/Inter-Medium.ttf"), {
   family: "Inter",
 });
 
-function spec(data) {
+function spec(data: Array<{ category: string; value: number }>): vega.Spec {
   return {
     $schema: "https://vega.github.io/schema/vega/v5.json",
     description: "",
     width: 800,
     height: 400,
-    padding: 5,
+    padding: 20,
 
     config: {
       background: "#ffffff",
@@ -23,7 +21,7 @@ function spec(data) {
     data: [
       {
         name: "table",
-        values: data,
+        values: data.map((d, id) => ({ id, ...d })),
       },
     ],
 
@@ -42,6 +40,12 @@ function spec(data) {
         nice: true,
         range: "width",
       },
+      {
+        name: "color",
+        type: "ordinal",
+        domain: { data: "table", field: "id" },
+        range: { scheme: "category10" },
+      },
     ],
 
     axes: [
@@ -49,13 +53,14 @@ function spec(data) {
         orient: "bottom",
         scale: "xscale",
         labelFont: "Inter",
-        labelFontSize: 14,
+        labelFontSize: 18,
+        format: "~s",
       },
       {
         orient: "left",
         scale: "yscale",
         labelFont: "Inter",
-        labelFontSize: 14,
+        labelFontSize: 20,
       },
     ],
 
@@ -69,7 +74,7 @@ function spec(data) {
             height: { scale: "yscale", band: 1 },
             x: { scale: "xscale", field: "amount" },
             x2: { scale: "xscale", value: 0 },
-            fill: { value: "steelblue" },
+            fill: { scale: "color", field: "id" },
           },
         },
       },
@@ -77,38 +82,11 @@ function spec(data) {
   };
 }
 
-function parseTweet(txt) {
-  const withoutUsername = txt.replace("@barchartbot", "");
-  const lines = withoutUsername
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const values = lines
-    .map((line) => {
-      const parts = line.split(":");
-      if (parts.length !== 2) return;
-      const category = parts[0];
-      const amount = numeral(parts[1]).value();
-      if (typeof amount !== "number") return;
-      return {
-        category,
-        amount,
-      };
-    })
-    .filter(Boolean);
-  return values;
-}
-
-module.exports = (req, res) => {
-  const { tweet = "" } = req.query;
-
-  const view = new vega.View(vega.parse(spec(parseTweet(tweet)), {}), {
+export async function renderChart(data: any) {
+  const view = new vega.View(vega.parse(spec(data), {}), {
     renderer: "canvas",
   }).finalize();
 
-  res.status(200);
-
-  view.toCanvas(1).then((canvas) => {
-    canvas.createPNGStream().pipe(res);
-  });
-};
+  const canvas = (await view.toCanvas(1)) as any;
+  return canvas.toBuffer();
+}
