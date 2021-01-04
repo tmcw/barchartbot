@@ -1,12 +1,13 @@
 import * as vega from "vega";
 import Path from "path";
+import wrap from "word-wrap";
 import { registerFont } from "canvas";
 
 registerFont(Path.resolve("./public/Inter-Medium.ttf"), {
   family: "Inter",
 });
 
-function spec(data: Array<{ category: string; value: number }>): vega.Spec {
+function spec(data: Array<{ category: string; amount: number }>): vega.Spec {
   return {
     $schema: "https://vega.github.io/schema/vega/v5.json",
     description: "",
@@ -21,7 +22,13 @@ function spec(data: Array<{ category: string; value: number }>): vega.Spec {
     data: [
       {
         name: "table",
-        values: data.map((d, id) => ({ id, ...d })),
+        values: data.map(({ category, amount }, id) => {
+          return {
+            id,
+            category: wrap(category, { width: 10, indent: "" }),
+            amount,
+          };
+        }),
       },
     ],
 
