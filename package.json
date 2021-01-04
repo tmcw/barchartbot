@@ -14,7 +14,8 @@
     "request": "^2.88.2",
     "request-promise": "^4.2.6",
     "url-regex": "^5.0.0",
-    "vega": "^5.17.0"
+    "vega": "^5.17.0",
+    "word-wrap": "^1.2.3"
   },
   "scripts": {
     "vercel-build": "yum install libuuid-devel libmount-devel && cp /lib64/{libuuid,libmount,libblkid}.so.1 node_modules/canvas/build/Release/",
