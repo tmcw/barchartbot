@@ -1,5 +1,6 @@
-const crypto = require("crypto");
-const request = require("request-promise");
+import Crypto from "crypto";
+import { NowRequest, NowResponse } from "@vercel/node";
+import request from "request-promise";
 import { registerFont } from "canvas";
 import * as vega from "vega";
 import numeral from "numeral";
@@ -7,13 +8,12 @@ import path from "path";
 
 const TWITTER_API = "https://api.twitter.com/1.1";
 const TWITTER_USERNAME = "@barchartbot";
-const GITHUB_URL = "https://github.com/alexluong/gimmedadjoke";
 
 registerFont(path.resolve("./public/Inter-Medium.ttf"), {
   family: "Inter",
 });
 
-function spec(data) {
+function spec(data: any): vega.Spec {
   return {
     $schema: "https://vega.github.io/schema/vega/v5.json",
     description: "",
@@ -82,7 +82,7 @@ function spec(data) {
   };
 }
 
-function parseTweet(txt) {
+function parseTweet(txt: string) {
   const withoutUsername = txt.replace("@barchartbot", "");
   const lines = withoutUsername
     .split("\n")
@@ -104,17 +104,16 @@ function parseTweet(txt) {
   return values;
 }
 
-function createCrcResponseToken(crcToken) {
-  const hmac = crypto
-    .createHmac("sha256", process.env.TWITTER_CONSUMER_SECRET)
+function createCrcResponseToken(crcToken: string) {
+  const hmac = Crypto.createHmac("sha256", process.env.TWITTER_CONSUMER_SECRET!)
     .update(crcToken)
     .digest("base64");
 
   return `sha256=${hmac}`;
 }
 
-function getHandler(req, res) {
-  const crcToken = req.query.crc_token;
+function getHandler(req: NowRequest, res: NowResponse) {
+  const crcToken = req.query.crc_token as string;
 
   if (crcToken) {
     res.status(200).send({
@@ -127,28 +126,52 @@ function getHandler(req, res) {
   }
 }
 
-function postHandler(req, res) {
+async function postHandler(req: NowRequest, res: NowResponse) {
   const body = req.body;
 
   // If not a tweet event, we're not doing anything
   if (!body.tweet_create_events) {
-    res.status(200).send();
+    res.status(200).send("");
     return;
   }
 
   const tweet = body.tweet_create_events[0];
 
   if (tweet.text.toLowerCase().includes(TWITTER_USERNAME)) {
-    const view = new vega.View(vega.parse(spec(parseTweet(tweet)), {}), {
+    const view = new vega.View(vega.parse(spec(parseTweet(tweet.text)), {}), {
       renderer: "canvas",
     }).finalize();
 
-    view.toCanvas(1).then((canvas) => {
-      canvas.createPNGStream().pipe(res);
-    });
+    const canvas = (await view.toCanvas(1)) as any;
+    const buf = canvas.toBuffer();
 
-    request
-      .post({
+    try {
+      const media_upload = await request.post({
+        url: `https://upload.twitter.com/1.1/media/upload.json`,
+        qs: {
+          media_category: "tweet_image",
+        },
+        oauth: {
+          consumer_key: process.env.TWITTER_CONSUMER_KEY,
+          consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+          token: process.env.TWITTER_ACCESS_TOKEN,
+          token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+        },
+        json: true,
+        formData: {
+          media: {
+            value: buf,
+            options: {
+              filename: "chart.png",
+              contentType: "image/png",
+            },
+          },
+        },
+      });
+
+      const { media_id_string } = media_upload;
+
+      await request.post({
         url: `${TWITTER_API}/statuses/update.json`,
         oauth: {
           consumer_key: process.env.TWITTER_CONSUMER_KEY,
@@ -157,27 +180,24 @@ function postHandler(req, res) {
           token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
         },
         form: {
-          status: `test`,
+          status: `Here’s your chart!`,
           in_reply_to_status_id: tweet.id_str,
           auto_populate_reply_metadata: true,
+          media_ids: media_id_string,
         },
-      })
-      .then((response) => {
-        console.log("Tweeted");
-        console.log(response);
-        res.status(200).send();
-      })
-      .catch((error) => {
-        console.log(error.message);
-        res.status(500).send();
       });
+      res.status(200).send("");
+    } catch (e) {
+      console.log(e);
+      res.status(500).send("");
+    }
   } else {
     console.log("non-mention request");
-    res.status(404).send();
+    res.status(404).send("");
   }
 }
 
-module.exports = (req, res) => {
+export default (req: NowRequest, res: NowResponse) => {
   try {
     switch (req.method) {
       case "GET":
@@ -189,6 +209,6 @@ module.exports = (req, res) => {
     }
   } catch (error) {
     console.log(error.message);
-    res.status(500).send();
+    res.status(500).send("");
   }
 };
