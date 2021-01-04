@@ -1,0 +1,12 @@
+<html>
+<body>
+<img id=chart src='' />
+<br />
+<textarea style="width:400px;height:400px" id=input></textarea>
+<script>
+input.oninput = () => {
+  chart.src = `/api/test?body=${encodeURIComponent(input.value)}`
+}
+</script>
+</body>
+</html>

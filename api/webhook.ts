@@ -1,108 +1,11 @@
 import Crypto from "crypto";
 import { NowRequest, NowResponse } from "@vercel/node";
 import request from "request-promise";
-import { registerFont } from "canvas";
-import * as vega from "vega";
-import numeral from "numeral";
-import path from "path";
+import { renderChart } from "../lib/chart";
+import { parseTweet } from "../lib/parse_tweet";
 
 const TWITTER_API = "https://api.twitter.com/1.1";
 const TWITTER_USERNAME = "@barchartbot";
-
-registerFont(path.resolve("./public/Inter-Medium.ttf"), {
-  family: "Inter",
-});
-
-function spec(data: any): vega.Spec {
-  return {
-    $schema: "https://vega.github.io/schema/vega/v5.json",
-    description: "",
-    width: 800,
-    height: 400,
-    padding: 5,
-
-    config: {
-      background: "#ffffff",
-    },
-
-    data: [
-      {
-        name: "table",
-        values: data,
-      },
-    ],
-
-    scales: [
-      {
-        name: "yscale",
-        type: "band",
-        domain: { data: "table", field: "category" },
-        range: "height",
-        padding: 0.05,
-        round: true,
-      },
-      {
-        name: "xscale",
-        domain: { data: "table", field: "amount" },
-        nice: true,
-        range: "width",
-      },
-    ],
-
-    axes: [
-      {
-        orient: "bottom",
-        scale: "xscale",
-        labelFont: "Inter",
-        labelFontSize: 14,
-      },
-      {
-        orient: "left",
-        scale: "yscale",
-        labelFont: "Inter",
-        labelFontSize: 14,
-      },
-    ],
-
-    marks: [
-      {
-        type: "rect",
-        from: { data: "table" },
-        encode: {
-          enter: {
-            y: { scale: "yscale", field: "category" },
-            height: { scale: "yscale", band: 1 },
-            x: { scale: "xscale", field: "amount" },
-            x2: { scale: "xscale", value: 0 },
-            fill: { value: "steelblue" },
-          },
-        },
-      },
-    ],
-  };
-}
-
-function parseTweet(txt: string) {
-  const withoutUsername = txt.replace("@barchartbot", "");
-  const lines = withoutUsername
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  const values = lines
-    .map((line) => {
-      const parts = line.split(":");
-      if (parts.length !== 2) return;
-      const category = parts[0];
-      const amount = numeral(parts[1]).value();
-      if (typeof amount !== "number") return;
-      return {
-        category,
-        amount,
-      };
-    })
-    .filter(Boolean);
-  return values;
-}
 
 function createCrcResponseToken(crcToken: string) {
   const hmac = Crypto.createHmac("sha256", process.env.TWITTER_CONSUMER_SECRET!)
@@ -138,12 +41,7 @@ async function postHandler(req: NowRequest, res: NowResponse) {
   const tweet = body.tweet_create_events[0];
 
   if (tweet.text.toLowerCase().includes(TWITTER_USERNAME)) {
-    const view = new vega.View(vega.parse(spec(parseTweet(tweet.text)), {}), {
-      renderer: "canvas",
-    }).finalize();
-
-    const canvas = (await view.toCanvas(1)) as any;
-    const buf = canvas.toBuffer();
+    const buf = await renderChart(parseTweet(tweet.text));
 
     try {
       const media_upload = await request.post({
